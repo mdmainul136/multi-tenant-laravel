@@ -1,0 +1,8 @@
+{
+    "key": "hrm",
+    "name": "HR & Staff Management",
+    "description": "Employee records, departments, attendance and leave management",
+    "version": "1.0.0",
+    "price": 29.99,
+    "author": "Platform Team"
+}

@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sGTM Debug Console</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-2: #1c2333;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-dim: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --red: #f85149;
+      --orange: #d29922;
+      --purple: #bc8cff;
+      --cyan: #39d2c0;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Header ──────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--green);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .container-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .container-id {
+      font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+      color: var(--cyan);
+      background: rgba(57, 210, 192, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover { background: var(--border); }
+    .btn-danger { border-color: var(--red); color: var(--red); }
+    .btn-danger:hover { background: rgba(248, 81, 73, 0.15); }
+
+    /* ── Stats Bar ───────────────────────────────── */
+    .stats-bar {
+      display: flex;
+      gap: 1px;
+      background: var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat {
+      flex: 1;
+      padding: 10px 16px;
+      background: var(--surface);
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    .stat-received .stat-value { color: var(--accent); }
+    .stat-forwarded .stat-value { color: var(--green); }
+    .stat-dropped .stat-value { color: var(--red); }
+    .stat-powerups .stat-value { color: var(--purple); }
+
+    /* ── Main Layout ─────────────────────────────── */
+    .main {
+      display: flex;
+      height: calc(100vh - 110px);
+    }
+
+    /* ── Timeline (Left Panel) ───────────────────── */
+    .timeline {
+      width: 360px;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      background: var(--surface);
+    }
+
+    .timeline-header {
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 1;
+    }
+
+    .event-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .event-item:hover { background: var(--surface-2); }
+    .event-item.active { background: var(--surface-2); border-left: 3px solid var(--accent); }
+
+    .event-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .event-dot.success { background: var(--green); }
+    .event-dot.error { background: var(--red); }
+    .event-dot.dropped { background: var(--orange); }
+
+    .event-info { flex: 1; min-width: 0; }
+
+    .event-name {
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .event-meta {
+      display: flex;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+
+    .event-time {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    /* ── Detail Panel (Right) ────────────────────── */
+    .detail {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .detail-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .detail-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-success { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+    .badge-error { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+    .badge-dropped { background: rgba(210, 153, 34, 0.15); color: var(--orange); }
+
+    /* ── Tabs ─────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      padding: 8px 16px;
+      font-size: 13px;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Sections ─────────────────────────────────── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .section-title {
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-body { padding: 14px; }
+
+    /* ── Key-Value Rows ──────────────────────────── */
+    .kv-row {
+      display: flex;
+      padding: 6px 0;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    }
+
+    .kv-row:last-child { border-bottom: none; }
+
+    .kv-key {
+      width: 140px;
+      flex-shrink: 0;
+      color: var(--text-dim);
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .kv-value {
+      flex: 1;
+      word-break: break-all;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 12px;
+    }
+
+    /* ── Destination Status ───────────────────────── */
+    .dest-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    }
+
+    .dest-row:last-child { border-bottom: none; }
+
+    .dest-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .dest-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .dest-icon.fb { background: #1877f2; }
+    .dest-icon.ga { background: #e37400; }
+    .dest-icon.tt { background: #000; }
+    .dest-icon.sc { background: #fffc00; color: #000; }
+    .dest-icon.tw { background: #000; }
+    .dest-icon.wh { background: #6366f1; }
+
+    .dest-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+
+    .dest-status.ok { color: var(--green); }
+    .dest-status.err { color: var(--red); }
+
+    /* ── JSON Viewer ─────────────────────────────── */
+    .json-viewer {
+      font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 12px;
+      background: var(--bg);
+      border-radius: 6px;
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .json-key { color: var(--accent); }
+    .json-string { color: var(--green); }
+    .json-number { color: var(--orange); }
+    .json-bool { color: var(--purple); }
+    .json-null { color: var(--red); }
+
+    /* ── Power-ups ───────────────────────────────── */
+    .powerup-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+
+    .powerup-icon { font-size: 14px; }
+
+    /* ── Scrollbar ────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Filter bar ──────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .filter-bar input {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .filter-bar input:focus { border-color: var(--accent); }
+
+    .filter-chip {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-chip:hover, .filter-chip.active {
+      background: rgba(88, 166, 255, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">⚡ sGTM Debug</div>
+      <div class="live-badge">
+        <span class="live-dot"></span>
+        <span id="connectionStatus">CONNECTING</span>
+      </div>
+      <div class="container-info">
+        <span>Container: <span class="container-id" id="containerId">—</span></span>
+        <span>Domain: <span id="containerDomain">—</span></span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="clearEvents()">Clear</button>
+      <button class="btn btn-danger" onclick="togglePause()">
+        <span id="pauseBtn">⏸ Pause</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat stat-received">
+      <div class="stat-value" id="statReceived">0</div>
+      <div class="stat-label">Received</div>
+    </div>
+    <div class="stat stat-forwarded">
+      <div class="stat-value" id="statForwarded">0</div>
+      <div class="stat-label">Forwarded</div>
+    </div>
+    <div class="stat stat-dropped">
+      <div class="stat-value" id="statDropped">0</div>
+      <div class="stat-label">Dropped</div>
+    </div>
+    <div class="stat stat-powerups">
+      <div class="stat-value" id="statPowerUps">0</div>
+      <div class="stat-label">Power-Ups</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Timeline -->
+    <div class="timeline">
+      <div class="filter-bar">
+        <input type="text" id="filterInput" placeholder="Filter events..." oninput="filterEvents()">
+        <span class="filter-chip active" data-filter="all" onclick="setFilter(this)">All</span>
+        <span class="filter-chip" data-filter="success" onclick="setFilter(this)">✓</span>
+        <span class="filter-chip" data-filter="error" onclick="setFilter(this)">✗</span>
+      </div>
+      <div class="timeline-header">
+        EVENT TIMELINE <span id="eventCount" style="float:right; color: var(--accent);">0</span>
+      </div>
+      <div id="eventList"></div>
+    </div>
+
+    <!-- Detail -->
+    <div class="detail" id="detailPanel">
+      <div class="detail-empty">
+        Select an event from the timeline to inspect
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── State ─────────────────────────────────────
+    let events = [];
+    let selectedEvent = null;
+    let isPaused = false;
+    let activeFilter = 'all';
+    let eventSource = null;
+
+    const stats = { received: 0, forwarded: 0, dropped: 0, powerups: 0 };
+
+    // ── Parse URL params ────────────────────────
+    const params = new URLSearchParams(window.location.search);
+    const containerId = params.get('id') || 'Unknown';
+    document.getElementById('containerId').textContent = containerId;
+    document.getElementById('containerDomain').textContent = window.location.host;
+    document.title = `Debug: ${containerId}`;
+
+    // ── SSE Connection ──────────────────────────
+    function connect() {
+      const authParam = params.get('gtm_auth') ? `&auth=${params.get('gtm_auth')}` : '';
+      eventSource = new EventSource(`/debug/stream?id=${containerId}${authParam}`);
+
+      eventSource.onopen = () => {
+        document.getElementById('connectionStatus').textContent = 'LIVE';
+      };
+
+      eventSource.onmessage = (e) => {
+        if (isPaused) return;
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === 'init') {
+            // Container info
+            return;
+          }
+          addEvent(data);
+        } catch (err) {
+          console.error('SSE parse error:', err);
+        }
+      };
+
+      eventSource.onerror = () => {
+        document.getElementById('connectionStatus').textContent = 'RECONNECTING';
+        setTimeout(connect, 3000);
+      };
+    }
+
+    // ── Add Event ───────────────────────────────
+    function addEvent(data) {
+      const event = {
+        id: data.event_id || `evt_${Date.now()}`,
+        name: data.event_name || data.event_type || 'unknown',
+        timestamp: data.timestamp || new Date().toISOString(),
+        clientId: data.client_id || '—',
+        sourceIp: data.source_ip || '—',
+        userAgent: data.user_agent || '—',
+        referrer: data.referrer || '—',
+        pageUrl: data.page_url || '—',
+        consent: data.consent,
+        status: data._status || 'success', // success | dropped | error
+        destinations: data._destinations || [],
+        powerUps: data._power_ups || [],
+        payload: data,
+        userData: data.user_data || {},
+        customData: data.custom_data || {},
+      };
+
+      events.unshift(event);
+      if (events.length > 200) events.pop(); // Keep last 200
+
+      // Update stats
+      stats.received++;
+      if (event.status === 'dropped') stats.dropped++;
+      else stats.forwarded += (event.destinations.length || 1);
+      stats.powerups += (event.powerUps.length || 0);
+      updateStats();
+
+      renderTimeline();
+    }
+
+    // ── Render Timeline ─────────────────────────
+    function renderTimeline() {
+      const list = document.getElementById('eventList');
+      const filter = document.getElementById('filterInput').value.toLowerCase();
+
+      const filtered = events.filter(e => {
+        if (activeFilter !== 'all') {
+          if (activeFilter === 'success' && e.status !== 'success') return false;
+          if (activeFilter === 'error' && e.status === 'success') return false;
+        }
+        if (filter && !e.name.toLowerCase().includes(filter) && !e.id.includes(filter)) return false;
+        return true;
+      });
+
+      document.getElementById('eventCount').textContent = filtered.length;
+
+      list.innerHTML = filtered.map(e => `
+        <div class="event-item ${selectedEvent?.id === e.id ? 'active' : ''}" onclick="selectEvent('${e.id}')">
+          <div class="event-dot ${e.status}"></div>
+          <div class="event-info">
+            <div class="event-name">${escHtml(e.name)}</div>
+            <div class="event-meta">
+              <span>${escHtml(e.clientId.substring(0, 12))}...</span>
+              <span>${escHtml(e.pageUrl ? new URL(e.pageUrl, 'http://x').pathname : '—')}</span>
+            </div>
+          </div>
+          <div class="event-time">${formatTime(e.timestamp)}</div>
+        </div>
+      `).join('');
+    }
+
+    // ── Select Event → Detail Panel ─────────────
+    function selectEvent(id) {
+      selectedEvent = events.find(e => e.id === id);
+      renderTimeline();
+      renderDetail();
+    }
+
+    function renderDetail() {
+      if (!selectedEvent) return;
+      const e = selectedEvent;
+      const panel = document.getElementById('detailPanel');
+
+      const destIcons = {
+        facebook_capi: { cls: 'fb', label: 'FB' },
+        ga4: { cls: 'ga', label: 'GA' },
+        tiktok: { cls: 'tt', label: 'TT' },
+        snapchat: { cls: 'sc', label: 'SC' },
+        twitter: { cls: 'tw', label: 'X' },
+        webhook: { cls: 'wh', label: 'WH' },
+      };
+
+      panel.innerHTML = `
+        <div class="detail-header">
+          <div class="detail-title">${escHtml(e.name)}</div>
+          <span class="badge badge-${e.status}">${e.status.toUpperCase()}</span>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab(this, 'tab-summary')">Summary</div>
+          <div class="tab" onclick="switchTab(this, 'tab-payload')">Payload</div>
+          <div class="tab" onclick="switchTab(this, 'tab-userdata')">User Data</div>
+          <div class="tab" onclick="switchTab(this, 'tab-destinations')">Destinations (${e.destinations.length})</div>
+          <div class="tab" onclick="switchTab(this, 'tab-powerups')">Power-Ups (${e.powerUps.length})</div>
+        </div>
+
+        <!-- Summary Tab -->
+        <div class="tab-content active" id="tab-summary">
+          <div class="section">
+            <div class="section-title">Event Details</div>
+            <div class="section-body">
+              <div class="kv-row"><span class="kv-key">Event ID</span><span class="kv-value">${escHtml(e.id)}</span></div>
+              <div class="kv-row"><span class="kv-key">Event Name</span><span class="kv-value">${escHtml(e.name)}</span></div>
+              <div class="kv-row"><span class="kv-key">Timestamp</span><span class="kv-value">${escHtml(e.timestamp)}</span></div>
+              <div class="kv-row"><span class="kv-key">Client ID</span><span class="kv-value">${escHtml(e.clientId)}</span></div>
+              <div class="kv-row"><span class="kv-key">Consent</span><span class="kv-value">${e.consent === false ? '❌ Denied' : '✅ Granted'}</span></div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">Request Info</div>
+            <div class="section-body">
+              <div class="kv-row"><span class="kv-key">Source IP</span><span class="kv-value">${escHtml(e.sourceIp)}</span></div>
+              <div class="kv-row"><span class="kv-key">User Agent</span><span class="kv-value">${escHtml(e.userAgent)}</span></div>
+              <div class="kv-row"><span class="kv-key">Referrer</span><span class="kv-value">${escHtml(e.referrer || '—')}</span></div>
+              <div class="kv-row"><span class="kv-key">Page URL</span><span class="kv-value">${escHtml(e.pageUrl || '—')}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payload Tab -->
+        <div class="tab-content" id="tab-payload">
+          <div class="section">
+            <div class="section-title">Raw Payload</div>
+            <div class="section-body">
+              <div class="json-viewer">${syntaxHighlight(JSON.stringify(e.payload, null, 2))}</div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">Custom Data</div>
+            <div class="section-body">
+              <div class="json-viewer">${syntaxHighlight(JSON.stringify(e.customData, null, 2))}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Data Tab -->
+        <div class="tab-content" id="tab-userdata">
+          <div class="section">
+            <div class="section-title">User Data (Hashed by PII Power-Up)</div>
+            <div class="section-body">
+              <div class="json-viewer">${syntaxHighlight(JSON.stringify(e.userData, null, 2))}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Destinations Tab -->
+        <div class="tab-content" id="tab-destinations">
+          <div class="section">
+            <div class="section-title">Forwarding Status</div>
+            <div class="section-body">
+              ${e.destinations.length === 0 ? '<div style="color: var(--text-dim); font-size: 13px;">No destinations configured</div>' :
+                e.destinations.map(d => {
+                  const icon = destIcons[d.type] || { cls: 'wh', label: '?' };
+                  return `
+                    <div class="dest-row">
+                      <div class="dest-name">
+                        <div class="dest-icon ${icon.cls}">${icon.label}</div>
+                        ${escHtml(d.name || d.type)}
+                      </div>
+                      <div class="dest-status ${(d.status_code || 200) < 400 ? 'ok' : 'err'}">
+                        ${(d.status_code || 200) < 400 ? '✅' : '❌'}
+                        ${d.status_code || 200}
+                        ${d.response_time ? `(${d.response_time}ms)` : ''}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Power-Ups Tab -->
+        <div class="tab-content" id="tab-powerups">
+          <div class="section">
+            <div class="section-title">Applied Power-Ups</div>
+            <div class="section-body">
+              ${e.powerUps.length === 0 ? '<div style="color: var(--text-dim); font-size: 13px;">No power-ups applied</div>' :
+                e.powerUps.map(p => `
+                  <div class="powerup-row">
+                    <span class="powerup-icon">${p.applied ? '✅' : '⏭️'}</span>
+                    <span style="font-weight:600">${escHtml(p.name || p.id)}</span>
+                    <span style="color: var(--text-dim); font-size: 12px; margin-left: auto;">${escHtml(p.result || '')}</span>
+                  </div>
+                `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Tab Switching ──────────────────────────
+    function switchTab(el, tabId) {
+      el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    // ── Helpers ─────────────────────────────────
+    function updateStats() {
+      document.getElementById('statReceived').textContent = stats.received;
+      document.getElementById('statForwarded').textContent = stats.forwarded;
+      document.getElementById('statDropped').textContent = stats.dropped;
+      document.getElementById('statPowerUps').textContent = stats.powerups;
+    }
+
+    function formatTime(ts) {
+      try {
+        const d = new Date(ts);
+        return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch { return '—'; }
+    }
+
+    function escHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    function syntaxHighlight(json) {
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          cls = /:$/.test(match) ? 'json-key' : 'json-string';
+        } else if (/true|false/.test(match)) {
+          cls = 'json-bool';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return `<span class="${cls}">${match}</span>`;
+      });
+    }
+
+    function clearEvents() {
+      events = [];
+      selectedEvent = null;
+      stats.received = stats.forwarded = stats.dropped = stats.powerups = 0;
+      updateStats();
+      renderTimeline();
+      document.getElementById('detailPanel').innerHTML = '<div class="detail-empty">Select an event from the timeline to inspect</div>';
+    }
+
+    function togglePause() {
+      isPaused = !isPaused;
+      document.getElementById('pauseBtn').textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+      document.getElementById('connectionStatus').textContent = isPaused ? 'PAUSED' : 'LIVE';
+    }
+
+    function filterEvents() { renderTimeline(); }
+
+    function setFilter(el) {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      activeFilter = el.dataset.filter;
+      renderTimeline();
+    }
+
+    // ── Demo Mode (when no SSE available) ───────
+    function addDemoEvent() {
+      const names = ['page_view', 'purchase', 'add_to_cart', 'begin_checkout', 'view_item', 'sign_up', 'login', 'search'];
+      const statuses = ['success', 'success', 'success', 'success', 'dropped', 'error'];
+      const destTypes = ['facebook_capi', 'ga4', 'tiktok', 'snapchat', 'twitter', 'webhook'];
+      const powerUpNames = ['dedupe', 'pii_hash', 'consent_mode', 'geo_enrich', 'bot_filter'];
+
+      const name = names[Math.floor(Math.random() * names.length)];
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+      const numDests = Math.floor(Math.random() * 4) + 1;
+      const destinations = Array.from({ length: numDests }, () => {
+        const type = destTypes[Math.floor(Math.random() * destTypes.length)];
+        return {
+          type,
+          name: type.replace('_', ' ').toUpperCase(),
+          status_code: Math.random() > 0.15 ? 200 : 401,
+          response_time: Math.floor(Math.random() * 300) + 50,
+        };
+      });
+
+      const numPU = Math.floor(Math.random() * 4);
+      const powerUps = Array.from({ length: numPU }, () => ({
+        id: powerUpNames[Math.floor(Math.random() * powerUpNames.length)],
+        name: powerUpNames[Math.floor(Math.random() * powerUpNames.length)],
+        applied: Math.random() > 0.2,
+        result: 'ok',
+      }));
+
+      addEvent({
+        event_id: `evt_${Math.random().toString(36).substr(2, 9)}`,
+        event_name: name,
+        timestamp: new Date().toISOString(),
+        client_id: `GA1.1.${Math.floor(Math.random() * 999999999)}.${Date.now()}`,
+        source_ip: `103.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`,
+        user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+        referrer: 'https://google.com',
+        page_url: `https://shop.example.com/${['products/shoes', 'checkout', 'cart', ''][Math.floor(Math.random()*4)]}`,
+        consent: Math.random() > 0.1,
+        _status: status,
+        _destinations: destinations,
+        _power_ups: powerUps,
+        user_data: { em: 'a1b2c3...hashed', ph: 'd4e5f6...hashed' },
+        custom_data: { currency: 'BDT', value: Math.floor(Math.random() * 5000) + 100 },
+      });
+    }
+
+    // Start connection or demo
+    connect();
+
+    // If no events after 3s, start demo mode for preview
+    setTimeout(() => {
+      if (events.length === 0) {
+        console.log('[Debug UI] No live events, starting demo mode...');
+        setInterval(addDemoEvent, 2000);
+        addDemoEvent(); // First immediate
+      }
+    }, 3000);
+  </script>
+</body>
+</html>

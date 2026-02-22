@@ -1,0 +1,23 @@
+{
+    "name": "Marketing Campaigns",
+    "key": "marketing",
+    "version": "1.0.0",
+    "description": "Multi-channel marketing suite supporting Email, SMS, and WhatsApp broadcasts with A/B testing and analytics.",
+    "author": "System",
+    "is_active": true,
+    "category": "marketing",
+    "icon": "megaphone",
+    "dependencies": [
+        "ecommerce",
+        "crm"
+    ],
+    "features": [
+        "email_campaigns",
+        "sms_campaigns",
+        "whatsapp_broadcasts",
+        "audience_segmentation",
+        "ab_testing",
+        "campaign_analytics",
+        "scheduled_sending"
+    ]
+}

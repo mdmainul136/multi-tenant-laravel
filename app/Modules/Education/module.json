@@ -1,0 +1,17 @@
+{
+    "name": "Education",
+    "key": "education",
+    "version": "1.0.0",
+    "description": "School management, student records, and classroom tracking.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "graduation-cap",
+    "features": [
+        "student_records",
+        "attendance",
+        "exam_management",
+        "timetable",
+        "fees_collection"
+    ]
+}

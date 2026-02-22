@@ -1,0 +1,17 @@
+{
+    "name": "Flash Sales & Affiliate",
+    "key": "flash-sales",
+    "version": "1.0.0",
+    "description": "Time-limited sales events and affiliate marketing tracking.",
+    "author": "System",
+    "is_active": true,
+    "category": "marketing",
+    "icon": "zap",
+    "features": [
+        "limited_time_offers",
+        "countdown_timers",
+        "affiliate_tracking",
+        "referral_rewards",
+        "payout_management"
+    ]
+}

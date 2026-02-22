@@ -1,0 +1,202 @@
+# Multi-Tenant Platform: System Architecture
+
+---
+
+## 1. Database Architecture (ERD)
+
+**Dual-Database Strategy:**
+- **Master DB (`mysql`)** → Platform-wide metadata: tenants, billing, modules.
+- **Tenant DB (`tenant_dynamic`)** → Isolated per-tenant data: users, products, orders.
+
+```mermaid
+erDiagram
+    TENANT ||--o{ TENANT_DOMAIN : hosts
+    TENANT ||--o{ TENANT_MODULE : subscribes
+    TENANT ||--o{ INVOICE : billed
+    TENANT ||--o| TENANT_DATABASE_PLAN : uses
+    TENANT ||--o{ TENANT_DATABASE_STAT : snapshots
+    TENANT ||--o{ PAYMENT_METHOD : stores
+    TENANT ||--o{ PAYMENT : makes
+    TENANT ||--o{ DOMAIN_ORDER : orders
+    MODULE ||--o{ TENANT_MODULE : active_in
+
+    TENANT {
+        bigint id PK
+        string tenant_id UK "Slug e.g. acme"
+        string database_name "tenant_acme"
+        string db_username "tu_acme (isolated)"
+        string db_password_encrypted "AES-256"
+        enum status "active/suspended/billing_failed/terminated"
+        enum provisioning_status "pending/db_created/migrated/active/failed"
+        int database_plan_id FK
+    }
+    MODULE {
+        int id PK
+        string module_key "ecommerce, crm"
+        string module_name
+        decimal price
+        boolean is_active
+    }
+    INVOICE {
+        int id PK
+        string tenant_id FK
+        decimal amount
+        enum status "pending/paid/overdue"
+    }
+    TENANT_DATABASE_PLAN {
+        int id PK
+        string slug "starter/business"
+        int storage_limit_mb
+        int max_tables
+        int max_connections
+    }
+```
+
+---
+
+## 2. Complete Feature Map
+
+### 🌍 Models (Master DB)
+
+| Model | Connection | Key Features |
+|---|---|---|
+| [Tenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Tenant.php#8-121) | `mysql` | Slug ID, encrypted DB creds, provisioning state machine (`pending→active`), status control (`active/suspended/terminated`). Relations: domains, modules, invoices, payments, stats, plan. |
+| `TenantDomain` | `mysql` | Subdomain/custom domain records. Fields: `is_primary`, `is_verified`, `status`. |
+| [TenantModule](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantModule.php#7-71) | `mysql` | Junction table for subscriptions. Fields: `status`, `expires_at`, `auto_renew`, `price_paid`. Scopes: [active()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Module.php#33-40). |
+| [TenantDatabasePlan](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantDatabasePlan.php#8-56) | `mysql` | Storage plans. Fields: `storage_limit_mb`, `max_tables`, `max_connections`, `price`. Scopes: [active()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Module.php#33-40). |
+| [TenantDatabaseStat](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantDatabaseStat.php#8-67) | `mysql` | Time-series snapshots of tenant DB size. Fields: `database_size_mb`, `slow_query_count`, `write_operation_count`, `top_tables_by_growth` (JSON). |
+| [Module](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Module.php#7-49) | `mysql` | Platform-wide feature definitions. Relations: [tenantModules](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Tenant.php#113-120), [activeSubscriptions](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Module.php#33-40). |
+| [Invoice](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Invoice.php#8-147) | `mysql` | Billing records per tenant. Fields: `status`, `due_date`, `paid_at`. |
+| [Payment](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Payment.php#7-85) | `mysql` | Stripe payment records. Fields: `stripe_session_id`, `stripe_payment_intent_id`, `amount_paid`, `status`. |
+| [PaymentMethod](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/PaymentMethod.php#8-128) | `mysql` | Saved cards per tenant. Fields: `stripe_payment_method_id`, `brand`, `last_four`, `is_default`. |
+| `DomainOrder` | `mysql` | Namecheap domain purchase records. Fields: `domain_name`, `years`, `expires_at`, `status`. |
+| [SuperAdmin](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/SuperAdmin.php#10-61) | `mysql` | Platform admin accounts. Uses Sanctum for authentication. |
+
+### 🧩 Models (Tenant DB)
+
+| Model | Connection | Key Features |
+|---|---|---|
+| [User](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/User.php#11-52) | `tenant_dynamic` | Per-tenant users. Fields: `role (admin/manager/user)`, `status`. Uses Sanctum. |
+| [TenantBaseModel](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantBaseModel.php#12-30) | `tenant_dynamic` | Abstract base model. Hard-codes `tenant_dynamic` connection for all tenant models to prevent accidental cross-DB queries. |
+| `Ecommerce\Product`, [Order](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#522-572), `Customer`, etc. | `tenant_dynamic` | All extend [TenantBaseModel](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantBaseModel.php#12-30). Scoped to the current tenant's isolated database automatically. |
+
+---
+
+### 🎮 Controllers (`app/Http/Controllers/Api`)
+
+| Controller | Route Prefix | Methods & Features |
+|---|---|---|
+| **AuthController** | `/api/auth` | [register](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Providers/AppServiceProvider.php#9-16), [login](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#85-144), [logout](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#145-160), [me](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#161-210). Custom JWT-style token generation (HS256). Reads/writes from `tenant_dynamic` (raw DB layer). |
+| **TenantController** | `/api/tenants` | [register](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Providers/AppServiceProvider.php#9-16) (full provisioning with 11-field validation), [show](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#76-131) (by ID), [current](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantController.php#119-166) (from request context), [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#15-54) (all tenants). |
+| **UserController** | `/api/users` | CRUD: [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#15-54), [store](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#40-67), [show](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#76-131), [update](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#151-183), [destroy](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#192-210). Manages users within the tenant's isolated DB. |
+| **SubscriptionController** | `/api/modules` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#15-54) (all available modules), [tenantModules](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Tenant.php#113-120) (subscribed), [subscribe](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#62-101), [unsubscribe](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#102-124), [checkAccess](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#125-146). |
+| **PaymentController** | `/api/payment` | [createCheckoutSession](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#23-141) (Stripe), [verifyPayment](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#142-255) (polls Stripe directly, no webhook needed), [stripeWebhook](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#256-297), [activateSubscription](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#479-515) (auto-runs module migrations post-payment), [calculatePrice](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#516-532) (monthly/yearly discounts), [calculateExpiryDate](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#533-549), [getPaymentStatus](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#550-562). |
+| **InvoiceController** | `/api/invoices` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#15-54) (filterable & paginated), [show](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#76-131) (with line items), [download](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#132-163) (PDF), [pay](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#164-265) (creates new Stripe checkout for unpaid invoice). |
+| **PaymentMethodController** | `/api/payment-methods` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#15-54), [store](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#40-67) (Stripe card attach), [destroy](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#192-210), [setDefault](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentMethodController.php#217-248). |
+| **PaymentHistoryController** | `/api/payment/history` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#15-54) (paginated history), [statistics](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#52-93) (total spend, count, avg), [downloadInvoice](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#94-131). |
+| **TenantDatabaseController** | `/api/database` | [analytics](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#25-60) (usage + quota + alerts), [tables](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#61-92) (per-table breakdown), [growth](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#93-124) (N-day trend), [plans](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#125-161) (available upgrade plans). |
+| **DomainController** | `/api/domains` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#15-54), [store](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#40-67), [verify](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#68-83) (DNS check), [setPrimary](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#84-103), [getDNSHosts](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#123-141), [updateDNSHosts](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#142-167), [getNameservers](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#104-122), [renew](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#168-191), [destroy](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#192-210). |
+| **DomainStoreController** | `/api/domains/store` | [search](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#84-103) (Namecheap availability), [whois](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#104-118), [purchase](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#119-216) (Stripe checkout), [repay](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#400-465), [verifyPurchase](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#217-399) (post-payment domain registration), [orders](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#30-64) (order history), [show](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#76-131), [syncOrder](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#522-572), [renewOrder](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#573-596). |
+| **ModuleManagementController** | `/api/super-admin/modules` | [upload](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#15-88) (install from ZIP via `module.json`), [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#15-54) (search/filter), [store](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#40-67), [update](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#151-183), [destroy](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#192-210) (blocks if active subscriptions exist). |
+| **SuperAdminController** | `/api/super-admin` | [dashboard](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#14-34) (platform stats), [tenants](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantDatabasePlan.php#32-39) (list all), [tenantDetails](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#66-86), [approveTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#87-100), [suspendTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#101-114), [deleteTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#115-133). |
+| **SuperAdminAuthController** | `/api/super-admin` | [login](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#85-144), [logout](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#145-160), [me](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#161-210), [changePassword](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminAuthController.php#98-134). Uses Laravel Sanctum. |
+
+---
+
+### 🛡️ Middlewares (`app/Http/Middleware`)
+
+| Middleware | Alias | Applied On | Features |
+|---|---|---|---|
+| [IdentifyTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/IdentifyTenant.php#13-141) | _(class ref)_ | All tenant routes | Resolves tenant from `X-Tenant-ID` header → custom domain lookup → subdomain extraction. Switches `tenant_dynamic` DB. Blocks `suspended/terminated/billing_failed` tenants. |
+| `AuthenticateToken` | _(class ref)_ | Protected tenant routes | Validates custom HS256 JWT. Decodes user ID and tenant ID from token. Attaches `user_id` to request. |
+| [CheckModuleAccess](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/CheckModuleAccess.php#10-45) | `module.access` | Ecommerce routes (`module.access:ecommerce`) | Checks [TenantModule](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantModule.php#7-71) subscription record. Returns `402 Payment Required` if inactive. |
+| [EnforceDatabaseQuota](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/EnforceDatabaseQuota.php#10-75) | `quota.enforce` | Write routes (POST/PUT/PATCH) | Checks latest [TenantDatabaseStat](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantDatabaseStat.php#8-67) against [TenantDatabasePlan](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantDatabasePlan.php#8-56). Blocks if storage **or** table limit exceeded. |
+| `DynamicCors` | _(auto)_ | All routes | Dynamically sets CORS `Allow-Origin` based on verified tenant domains. Prevents cross-tenant cookie/session attacks. |
+
+---
+
+### ⚙️ Services (`app/Services`)
+
+| Service | Features |
+|---|---|
+| [DatabaseManager](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#9-217) | [createTenantDatabase](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#18-50), [runTenantMigrations](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#51-99) (raw SQL: `users` + `personal_access_tokens`), [createAdminUser](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#80-106), [switchToTenantDatabase](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#171-216) (purges & reconnects `tenant_dynamic`), [getTenantConnection](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#107-143) (connection cache). |
+| [TenantService](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#10-182) | **State machine provisioning** (`pending→db_created→migrated→active/failed`). [createTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#19-96) (atomic, 5-step). [cleanupFailedProvisioning](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#143-171) (deletes stale `failed/pending` tenants). [getAllTenants](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#172-181), [getTenantByTenantId](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#132-142). |
+| [TenantDatabaseIsolationService](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#11-179) | [createIsolatedUser](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#13-62) (MySQL `CREATE USER ... GRANT` to single DB only). [revokeAccess](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#63-85), [dropIsolatedUser](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#86-112). [setStoragePlan](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#113-132), [checkQuotaUsage](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#133-167), [isOverQuota](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#168-178). |
+| [TenantDatabaseAnalyticsService](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#10-329) | [collectStats](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#12-114) (from `INFORMATION_SCHEMA` + `performance_schema`: size, rows, slow queries, write ops). [collectAllStats](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#115-137) (for all active tenants). [getAnalytics](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#138-182) (quota-aware response). [getTableBreakdown](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#183-228), [getGrowthTrend](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#229-274) (daily grouping). [detectSchemaDrift](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#275-328) (compares actual vs expected tables). |
+| [ModuleMigrationManager](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#9-291) | [runModuleMigrations](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#50-128) (with **row-level lock** + **quota check** before executing). [rollbackModuleMigrations](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#129-171) (**non-destructive**: archives tables by rename). [archiveModuleTables](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#172-212) (supports both raw SQL and `Schema::create` patterns). Batch tracking via `module_migrations` master table. |
+| [ModuleService](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#11-220) | [subscribeModule](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#83-153) (transactional: creates subscription → runs migrations). [unsubscribeModule](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#154-201) (sets inactive → archives tables). [isModuleActive](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#58-82), [getTenantModules](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#28-57), [getAvailableModules](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#20-27), [getModuleStats](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#202-219). |
+| [BillingEnforcementService](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/BillingEnforcementService.php#9-66) | Scheduled agent. Finds tenants with overdue invoices (> 3 days). Updates tenant `status` to `billing_failed`. Calls `IsolationService.revokeAccess`. |
+| `DomainService` | Custom domain management, DNS record CRUD, Namecheap API integration for DNS host updates and nameserver management. |
+| `DomainSearchService` | Domain availability search, pricing, TLD suggestions via Namecheap API. |
+| `DomainRegistrationService` | Domain registration flow, WHOIS data, multi-year registration. |
+| [NamecheapService](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/NamecheapService.php#8-572) | Core Namecheap API client. Methods: `checkDomains`, [registerDomain](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/NamecheapService.php#178-193), [getDNSHosts](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#123-141), `setDNSHosts`, [getNameservers](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#104-122), `setNameservers`, [renewDomain](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/NamecheapService.php#194-227). Configurable sandbox/live mode. |
+| [TenantBackupService](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantBackupService.php#10-63) | Database snapshot and backup utilities for tenant databases. |
+
+---
+
+### 📦 Modules (`app/Modules`)
+
+#### Ecommerce Module (`app/Modules/Ecommerce/`)
+
+| Component | Features |
+|---|---|
+| **ProductController** | Full CRUD for products. Supports categories, pricing, stock. |
+| **CategoryController** | Full CRUD for product categories. |
+| **OrderController** | Full CRUD for orders. Order status management. |
+| **CustomerController** | Full CRUD for customers. Customer profile management. |
+| **EcommerceDashboardController** | `stats` endpoint: total products, orders, customers, revenue. |
+| **Migrations** | `ec_products`, `ec_orders`, `ec_order_items`, `ec_customers`, `ec_categories` tables. Installed on-demand via [ModuleMigrationManager](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#9-291). |
+
+> All Ecommerce routes are protected by **3 middleware layers**: `AuthenticateToken` (must be logged in) + `module.access:ecommerce` (must have an active subscription) + `quota.enforce` (cannot exceed storage limit).
+
+---
+
+### 🛣️ Route Map ([routes/api.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/routes/api.php))
+
+| Group | Middleware Stack | Endpoints |
+|---|---|---|
+| **Public** | none | `GET /health`, `POST /stripe/webhook` |
+| **Tenant Public** | none | `POST /tenants/register`, `GET /tenants/{id}`, `GET /tenants` |
+| **Super Admin** | `auth:sanctum` | `/super-admin/login`, `/me`, `/dashboard`, `/tenants (CRUD)`, `/modules (CRUD + upload)` |
+| **Tenant Identified** | [IdentifyTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/IdentifyTenant.php#13-141) | `GET /tenants/current` |
+| **Tenant Auth** | [IdentifyTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/IdentifyTenant.php#13-141) | `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` |
+| **Users** | `IdentifyTenant + AuthenticateToken + quota.enforce` | Full CRUD `/users` |
+| **Modules/Subscriptions** | `IdentifyTenant + AuthenticateToken` | `GET/POST /modules`, `/modules/{key}/access` |
+| **Payments** | `IdentifyTenant + AuthenticateToken` | `/payment/checkout`, `/verify`, `/{id}/status`, `/history`, `/statistics` |
+| **Invoices** | `IdentifyTenant + AuthenticateToken` | Full CRUD `/invoices`, `/{id}/download`, `/{id}/pay` |
+| **Payment Methods** | `IdentifyTenant + AuthenticateToken` | Full CRUD `/payment-methods`, `/{id}/default` |
+| **Database Analytics** | `IdentifyTenant + AuthenticateToken` | `GET /database/analytics`, `/tables`, `/growth`, `/plans` |
+| **Domains** | `IdentifyTenant + AuthenticateToken` | Full CRUD + `/verify`, `/dns`, `/nameservers`, `/renew` |
+| **Domain Store** | `IdentifyTenant + AuthenticateToken` | `/store/search`, `/whois`, `/purchase`, `/verify-purchase`, `orders` |
+| **Ecommerce** | `IdentifyTenant + AuthenticateToken + module.access:ecommerce + quota.enforce` | Full CRUD for products, categories, orders, customers + `/stats` |
+
+---
+
+## 3. Provisioning State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending : Tenant.create()
+    pending --> db_created : createTenantDatabase() ✅
+    db_created --> migrated : runTenantMigrations() ✅
+    migrated --> active : createAdminUser() ✅
+    active --> [*] : Normal Operation
+
+    pending --> failed : Any step fails ❌
+    db_created --> failed : Any step fails ❌
+    migrated --> failed : Any step fails ❌
+    failed --> [*] : cleanupFailedProvisioning() (24h later)
+```
+
+---
+
+## 4. Security Architecture
+
+| Layer | Protection |
+|---|---|
+| **Database Isolation** | Each tenant has a unique MySQL user with `GRANT` only to their own DB. Cross-DB access is impossible. |
+| **Credential Encryption** | `db_password_encrypted` uses Laravel `encrypted` cast (AES-256-CBC). Never stored in plain text. |
+| **Request Isolation** | `IdentifyTenant` switches `tenant_dynamic` connection per request. Cannot touch another tenant's DB. |
+| **Queue Guard** | `AppServiceProvider` intercepts every queued job and calls `applyTenantContext()` before execution. |
+| **Kill Switch** | `IdentifyTenant` blocks requests immediately if tenant status = `suspended`, `billing_failed`, or `terminated`. |
+| **Dynamic CORS** | `DynamicCors` validates request origin against verified `TenantDomain` records to prevent cross-tenant attacks. |

@@ -1,0 +1,17 @@
+{
+    "name": "Restaurant",
+    "key": "restaurant",
+    "version": "1.0.0",
+    "description": "Menu management, table reservations, and kitchen display system.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "utensils",
+    "features": [
+        "menu_management",
+        "table_reservations",
+        "kitchen_display_system",
+        "online_ordering",
+        "inventory_tracking"
+    ]
+}

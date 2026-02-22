@@ -1,0 +1,52 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: 🚀 Deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo, pdo_mysql, xml, curl, zip, bcmath, gd
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+      - name: Build Assets
+        run: |
+          npm ci || true
+          npm run build || true
+
+      # ─── Deploy via SSH ──────────────────────────────────────
+      # Uncomment and configure when server is ready:
+      #
+      # - name: Deploy to Server
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.SERVER_HOST }}
+      #     username: ${{ secrets.SERVER_USER }}
+      #     key: ${{ secrets.SERVER_SSH_KEY }}
+      #     script: |
+      #       cd /var/www/multi-tenant-laravel
+      #       git pull origin main
+      #       composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+      #       php artisan migrate --force
+      #       php artisan config:cache
+      #       php artisan route:cache
+      #       php artisan view:cache
+      #       php artisan queue:restart
+      #       echo "✅ Deployed successfully!"
+
+      - name: Deployment Status
+        run: echo "🚀 Deployment pipeline ready. Configure SSH secrets to enable auto-deploy."

@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────
+# sGTM Tracking Infrastructure
+#
+# Usage:
+#   docker-compose -f docker/docker-compose.tracking.yml up -d
+#   
+# This starts:
+#   1. NGINX reverse proxy (SSL + tenant routing)
+#   2. One example sGTM container
+#   3. Uses the host's Laravel app as Power-Ups API
+# ─────────────────────────────────────────────────────────────
+
+version: '3.8'
+
+networks:
+  tracking_network:
+    driver: bridge
+
+services:
+  # ── Reverse Proxy ────────────────────────────────────────
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: tracking_nginx
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - tracking_network
+    restart: unless-stopped
+
+  # ── Example sGTM Container (tenant_demo) ──────────────────
+  sgtm-demo:
+    build:
+      context: ./sgtm
+      dockerfile: Dockerfile
+    container_name: sgtm_demo
+    environment:
+      - CONTAINER_ID=GTM-DEMO001
+      - API_SECRET=change_me_in_production
+      - POWERUPS_URL=http://host.docker.internal:8000/api/tracking/proxy
+      - PORT=8080
+      - COOKIE_NAME=_stape_id
+    ports:
+      - "9000:8080"
+    networks:
+      - tracking_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'

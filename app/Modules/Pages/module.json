@@ -1,0 +1,16 @@
+{
+    "name": "Page Builder",
+    "key": "pages",
+    "version": "1.0.0",
+    "description": "Drag-and-drop page builder for landing pages and content pages.",
+    "author": "System",
+    "is_active": true,
+    "category": "platform",
+    "icon": "layout",
+    "features": [
+        "drag_drop_builder",
+        "templates",
+        "custom_html_css",
+        "responsive_preview"
+    ]
+}

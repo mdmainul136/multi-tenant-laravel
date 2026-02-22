@@ -1,0 +1,8 @@
+{
+    "key": "inventory",
+    "name": "Inventory Management",
+    "description": "Suppliers, purchase orders and stock tracking",
+    "version": "1.0.0",
+    "price": 34.99,
+    "author": "Platform Team"
+}

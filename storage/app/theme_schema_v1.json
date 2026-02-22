@@ -1,0 +1,89 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "SohoThemeBlueprint_v1",
+    "type": "object",
+    "required": [
+        "version",
+        "layouts",
+        "globalSettings"
+    ],
+    "properties": {
+        "version": {
+            "type": "string",
+            "default": "1.0.0"
+        },
+        "capabilities": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "examples": [
+                "mega_menu",
+                "rtl_ready",
+                "video_hero",
+                "multilingual"
+            ]
+        },
+        "globalSettings": {
+            "type": "object",
+            "properties": {
+                "primaryColor": {
+                    "type": "string",
+                    "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+                },
+                "accentColor": {
+                    "type": "string",
+                    "pattern": "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+                },
+                "headingFont": {
+                    "type": "string"
+                },
+                "bodyFont": {
+                    "type": "string"
+                }
+            }
+        },
+        "layouts": {
+            "type": "object",
+            "properties": {
+                "home": {
+                    "$ref": "#/definitions/pageLayout"
+                },
+                "product": {
+                    "$ref": "#/definitions/pageLayout"
+                },
+                "collection": {
+                    "$ref": "#/definitions/pageLayout"
+                }
+            }
+        }
+    },
+    "definitions": {
+        "pageLayout": {
+            "type": "object",
+            "required": [
+                "sections"
+            ],
+            "properties": {
+                "sections": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "type",
+                            "settings"
+                        ],
+                        "properties": {
+                            "type": {
+                                "type": "string"
+                            },
+                            "settings": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

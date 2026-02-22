@@ -1,0 +1,19 @@
+{
+    "name": "CrossBorderIOR",
+    "key": "cross_border_ior",
+    "version": "1.0.0",
+    "description": "Cross-Border Marketplace & IOR (Importer of Record) module. Customers paste a product URL from Amazon/eBay/Walmart/Alibaba and get door delivery in BDT.",
+    "author": "System",
+    "is_active": true,
+    "category": "marketplace",
+    "icon": "globe",
+    "features": [
+        "foreign_product_scraping",
+        "bdt_pricing",
+        "bkash_payment",
+        "sslcommerz_payment",
+        "courier_booking",
+        "shipment_tracking",
+        "html_invoices"
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "name": "Analytics Engine",
+    "key": "analytics",
+    "version": "1.0.0",
+    "description": "Deep business intelligence, sales reports, and customer insights.",
+    "author": "System",
+    "is_active": true,
+    "category": "core",
+    "icon": "bar-chart",
+    "features": [
+        "sales_analytics",
+        "inventory_reports",
+        "customer_insights",
+        "export_csv"
+    ]
+}

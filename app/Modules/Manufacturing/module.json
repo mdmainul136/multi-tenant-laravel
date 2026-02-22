@@ -1,0 +1,8 @@
+{
+    "name": "Manufacturing",
+    "key": "manufacturing",
+    "version": "1.0.0",
+    "description": "Manufacturing and Bill of Materials management.",
+    "author": "System",
+    "is_active": true
+}

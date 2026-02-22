@@ -1,0 +1,16 @@
+{
+    "name": "Contract Management",
+    "key": "contracts",
+    "version": "1.0.0",
+    "description": "Digital signatures, contract templates, and expiry tracking.",
+    "author": "System",
+    "is_active": true,
+    "category": "core",
+    "icon": "file-text",
+    "features": [
+        "contract_templates",
+        "digital_signatures",
+        "expiry_notifications",
+        "document_versioning"
+    ]
+}

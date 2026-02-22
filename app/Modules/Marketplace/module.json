@@ -1,0 +1,17 @@
+{
+    "name": "Multi-Vendor Marketplace",
+    "key": "marketplace",
+    "version": "1.0.0",
+    "description": "Allow multiple sellers to list products, manage commissions and payouts.",
+    "author": "System",
+    "is_active": true,
+    "category": "growth",
+    "icon": "store",
+    "features": [
+        "seller_onboarding",
+        "commission_rules",
+        "vendor_payouts",
+        "seller_analytics",
+        "dispute_management"
+    ]
+}

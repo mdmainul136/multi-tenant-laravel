@@ -1,0 +1,1 @@
+❌ Error: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: tenant_master, SQL: SHOW COLUMNS FROM tenants LIKE 'admin_email')

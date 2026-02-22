@@ -1,0 +1,14 @@
+{
+    "name": "sgtm-tracking-proxy",
+    "version": "1.0.0",
+    "description": "Custom server-side tracking proxy (sGTM replacement)",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node --watch server.js"
+    },
+    "dependencies": {
+        "cookie-parser": "^1.4.6",
+        "uuid": "^9.0.0"
+    }
+}

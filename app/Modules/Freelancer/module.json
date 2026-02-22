@@ -1,0 +1,17 @@
+{
+    "name": "Freelancer",
+    "key": "freelancer",
+    "version": "1.0.0",
+    "description": "Project tracking, invoicing, and client management for freelancers.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "briefcase",
+    "features": [
+        "project_tracking",
+        "time_logs",
+        "freelancer_invoicing",
+        "client_portal",
+        "portfolio_management"
+    ]
+}

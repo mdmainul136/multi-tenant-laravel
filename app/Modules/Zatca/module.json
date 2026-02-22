@@ -1,0 +1,16 @@
+{
+    "name": "ZATCA E-Invoicing",
+    "key": "zatca",
+    "version": "1.0.0",
+    "description": "Saudi ZATCA Phase 2 e-invoicing compliance and integration.",
+    "author": "System",
+    "is_active": true,
+    "category": "legal",
+    "icon": "shield-check",
+    "features": [
+        "zatca_compliance",
+        "invoice_reporting",
+        "cryptographic_stamps",
+        "xml_generation"
+    ]
+}

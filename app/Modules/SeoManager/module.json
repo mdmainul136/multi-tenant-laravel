@@ -1,0 +1,16 @@
+{
+    "name": "SEO Manager",
+    "key": "seo-manager",
+    "version": "1.0.0",
+    "description": "Meta tags, sitemaps, structured data, and SEO analytics.",
+    "author": "System",
+    "is_active": true,
+    "category": "platform",
+    "icon": "search",
+    "features": [
+        "meta_tag_editor",
+        "sitemap_generator",
+        "structured_data",
+        "seo_score"
+    ]
+}

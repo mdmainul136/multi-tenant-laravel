@@ -1,0 +1,18 @@
+{
+    "name": "Automotive",
+    "key": "automotive",
+    "version": "1.0.0",
+    "description": "Vehicle listings, service bookings, and fleet management.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "car",
+    "features": [
+        "vehicle_listings",
+        "service_bookings",
+        "test_drives",
+        "fleet_management",
+        "service_history",
+        "parts_catalog"
+    ]
+}

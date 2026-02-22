@@ -1,0 +1,8 @@
+{
+    "key": "crm",
+    "name": "CRM & Loyalty",
+    "description": "Customer management, loyalty points, coupon system and promotions",
+    "version": "1.0.0",
+    "price": 39.99,
+    "author": "Platform Team"
+}

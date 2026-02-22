@@ -1,0 +1,8 @@
+{
+    "key": "notifications",
+    "name": "Notification Center",
+    "description": "In-app notifications with templates and broadcast messaging",
+    "version": "1.0.0",
+    "price": 19.99,
+    "author": "Platform Team"
+}

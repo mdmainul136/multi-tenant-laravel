@@ -1,0 +1,17 @@
+{
+    "name": "Fitness",
+    "key": "fitness",
+    "version": "1.0.0",
+    "description": "Gym membership, class scheduling, and trainer management.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "dumbbell",
+    "features": [
+        "membership_management",
+        "class_scheduling",
+        "trainer_roster",
+        "workout_plans",
+        "progress_tracking"
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "name": "Real Estate",
+    "key": "realestate",
+    "version": "1.0.0",
+    "description": "Property sales, lead management, and agency tools.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "building",
+    "features": [
+        "sales_listings",
+        "lead_tracking",
+        "agency_management",
+        "virtual_tours"
+    ]
+}

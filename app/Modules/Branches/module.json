@@ -1,0 +1,16 @@
+{
+    "name": "Branch Management",
+    "key": "branches",
+    "version": "1.0.0",
+    "description": "Manage multiple physical locations, branch-wise inventory and staff assignment.",
+    "author": "System",
+    "is_active": true,
+    "category": "operations",
+    "icon": "building",
+    "features": [
+        "multi_branch_support",
+        "inventory_transfer",
+        "location_based_pricing",
+        "branch_analytics"
+    ]
+}

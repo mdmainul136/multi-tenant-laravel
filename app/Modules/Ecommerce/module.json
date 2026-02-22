@@ -1,0 +1,8 @@
+{
+    "name": "Ecommerce",
+    "key": "ecommerce",
+    "version": "1.0.0",
+    "description": "Standard eCommerce module with products, categories, and orders.",
+    "author": "System",
+    "is_active": true
+}

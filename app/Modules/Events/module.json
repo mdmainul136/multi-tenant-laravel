@@ -1,0 +1,16 @@
+{
+    "name": "Event Management",
+    "key": "events",
+    "version": "1.0.0",
+    "description": "Ticketing, guest list management, and venue coordination.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "calendar",
+    "features": [
+        "ticketing_system",
+        "guest_list_management",
+        "budget_tracking",
+        "timeline_scheduling"
+    ]
+}

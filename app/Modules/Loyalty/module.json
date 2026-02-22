@@ -1,0 +1,17 @@
+{
+    "name": "Loyalty & Rewards",
+    "key": "loyalty",
+    "version": "1.0.0",
+    "description": "Points system, tiered rewards, and cashback rules to increase customer retention.",
+    "author": "System",
+    "is_active": true,
+    "category": "growth",
+    "icon": "heart",
+    "features": [
+        "points_ledger",
+        "tiered_membership",
+        "cashback_campaigns",
+        "referral_bonus",
+        "birthday_rewards"
+    ]
+}

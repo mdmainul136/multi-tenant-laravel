@@ -1,0 +1,21 @@
+﻿{
+    "description":  "Tracking module",
+    "files":  [
+
+              ],
+    "aliases":  {
+
+                },
+    "providers":  [
+
+                  ],
+    "alias":  "tracking",
+    "name":  "Tracking",
+    "keywords":  [
+
+                 ],
+    "priority":  0,
+    "requires":  [
+
+                 ]
+}

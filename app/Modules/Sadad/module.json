@@ -1,0 +1,15 @@
+{
+    "name": "SADAD Payment",
+    "key": "sadad",
+    "version": "1.0.0",
+    "description": "Integration with Saudi SADAD for bill presentment and payment matching.",
+    "author": "System",
+    "is_active": true,
+    "category": "saudi",
+    "icon": "credit-card",
+    "features": [
+        "bill_presentment",
+        "payment_tracking",
+        "auto_reconciliation"
+    ]
+}

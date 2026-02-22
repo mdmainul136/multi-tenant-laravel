@@ -1,0 +1,17 @@
+{
+    "name": "Landlord",
+    "key": "landlord",
+    "version": "1.0.0",
+    "description": "Property management, tenant tracking, and rent collection.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "home",
+    "features": [
+        "property_listings",
+        "tenant_management",
+        "lease_agreements",
+        "rent_collection",
+        "maintenance_requests"
+    ]
+}

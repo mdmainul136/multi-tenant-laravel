@@ -1,0 +1,15 @@
+{
+    "name": "App Marketplace",
+    "key": "app-marketplace",
+    "version": "1.0.0",
+    "description": "Install third-party apps and internal modules to extend platform functionality.",
+    "author": "System",
+    "is_active": true,
+    "category": "core",
+    "icon": "grid",
+    "features": [
+        "app_installation",
+        "developer_portal_access",
+        "api_keys_management"
+    ]
+}

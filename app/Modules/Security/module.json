@@ -1,0 +1,16 @@
+{
+    "name": "Audit Logs & Security",
+    "key": "security",
+    "version": "1.0.0",
+    "description": "Detailed activity tracking and security logs for compliance and monitoring.",
+    "author": "System",
+    "is_active": true,
+    "category": "core",
+    "icon": "shield",
+    "features": [
+        "full_audit_trail",
+        "action_logs",
+        "staff_activity_tracking",
+        "compliance_reporting"
+    ]
+}

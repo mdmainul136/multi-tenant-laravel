@@ -1,0 +1,15 @@
+{
+    "name": "National Address (SPL)",
+    "key": "national-address",
+    "version": "1.0.0",
+    "description": "Integration with Saudi Post (SPL) for address validation and delivery lookup.",
+    "author": "System",
+    "is_active": true,
+    "category": "saudi",
+    "icon": "map-pin",
+    "features": [
+        "address_validation",
+        "spl_lookup",
+        "short_address_support"
+    ]
+}

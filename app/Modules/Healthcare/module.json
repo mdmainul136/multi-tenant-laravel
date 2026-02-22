@@ -1,0 +1,17 @@
+{
+    "name": "Healthcare",
+    "key": "healthcare",
+    "version": "1.0.0",
+    "description": "Patient records, doctor scheduling, and clinic management.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "stethoscope",
+    "features": [
+        "patient_records",
+        "appointment_scheduling",
+        "doctor_roster",
+        "e_prescriptions",
+        "lab_reports"
+    ]
+}

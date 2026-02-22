@@ -1,0 +1,15 @@
+{
+    "name": "Maroof Verification",
+    "key": "maroof",
+    "version": "1.0.0",
+    "description": "Integration with Saudi Maroof for store trust verification and badges.",
+    "author": "System",
+    "is_active": true,
+    "category": "saudi",
+    "icon": "shield-check",
+    "features": [
+        "badge_display",
+        "verification_sync",
+        "compliance_check"
+    ]
+}

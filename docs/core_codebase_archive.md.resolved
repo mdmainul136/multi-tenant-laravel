@@ -1,0 +1,385 @@
+# Multi-Tenant Platform: Core Codebase Archive
+
+This document serves as a complete reference for the multi-tenant engine. It includes a **component index** and the **source code** for all core files.
+
+---
+
+## 📋 Complete Component Index
+
+### Models
+
+| File | DB | Fillable Fields | Relations |
+|---|---|---|---|
+| [Tenant.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Tenant.php) | `mysql` | `tenant_id`, `tenant_name`, `database_name`, `db_username`, `db_password_encrypted`, `status`, `provisioning_status`, `domain`, `admin_email`, `admin_name`, `company_name`, `business_type`, `phone`, `address`, `city`, `country`, `database_plan_id` | `domains()`, `modules()`, `invoices()`, `payments()`, `paymentMethods()`, [databasePlan()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Tenant.php#89-96), [latestDatabaseStat()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Tenant.php#105-112), [databaseStats()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Tenant.php#97-104) |
+| [TenantDomain.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantDomain.php) | `mysql` | `tenant_id`, `domain`, `is_primary`, `is_verified`, `status` | [tenant()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/PaymentMethod.php#33-40) |
+| [TenantModule.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantModule.php) | `mysql` | `tenant_id`, `module_id`, `status`, `subscription_type`, `price_paid`, `subscribed_at`, `starts_at`, `expires_at`, `auto_renew`, `payment_id` | [tenant()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/PaymentMethod.php#33-40), [module()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantModule.php#34-41). Scopes: [active()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Module.php#33-40) |
+| [TenantDatabasePlan.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantDatabasePlan.php) | `mysql` | `name`, `slug`, `storage_limit_mb`, `storage_limit_gb`, `max_tables`, `max_connections`, `price`, `is_active` | — |
+| [TenantDatabaseStat.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantDatabaseStat.php) | `mysql` | `tenant_id`, `database_size_mb`, `data_size_mb`, `index_size_mb`, `table_count`, `total_rows`, `largest_table`, `largest_table_size_mb`, `slow_query_count`, `write_operation_count`, `top_tables_by_growth`, `recorded_at` | [tenant()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/PaymentMethod.php#33-40) |
+| [Module.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Module.php) | `mysql` | `module_key`, `module_name`, `description`, `version`, `price`, `is_active` | [tenantModules()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Module.php#25-32), [activeSubscriptions()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Module.php#33-40) |
+| [Invoice.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Invoice.php) | `mysql` | `tenant_id`, `payment_id`, `module_id`, `subscription_type`, `amount`, `tax`, `total`, `status`, `due_date`, `paid_at`, `stripe_invoice_id` | [tenant()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/PaymentMethod.php#33-40), [payment()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Invoice.php#49-53), [module()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantModule.php#34-41) |
+| [Payment.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Payment.php) | `mysql` | `tenant_id`, `module_id`, `stripe_session_id`, `stripe_payment_intent_id`, `stripe_payment_method_id`, `amount_paid`, `currency`, `status`, `subscription_type`, `payment_method_type` | [tenant()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/PaymentMethod.php#33-40), [module()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantModule.php#34-41) |
+| [PaymentMethod.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/PaymentMethod.php) | `mysql` | `tenant_id`, `stripe_payment_method_id`, `stripe_customer_id`, `brand`, `last_four`, `exp_month`, `exp_year`, `is_default` | [tenant()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/PaymentMethod.php#33-40) |
+| [DomainOrder.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/DomainOrder.php) | `mysql` | `tenant_id`, `domain_name`, `years`, `amount_paid`, `status`, `registered_at`, `expires_at`, `namecheap_order_id` | [tenant()](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/PaymentMethod.php#33-40) |
+| [SuperAdmin.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/SuperAdmin.php) | `mysql` | `name`, `email`, `password` | — |
+| [User.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/User.php) | `tenant_dynamic` | `name`, `email`, `password`, `role`, `status` | — |
+| [TenantBaseModel.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/TenantBaseModel.php) | `tenant_dynamic` | _(abstract)_ | Extends Eloquent. Forces `$connection = 'tenant_dynamic'` for all subclasses. |
+
+---
+
+### Controllers
+
+| Controller | URI Prefix | Methods |
+|---|---|---|
+| [AuthController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#12-232) | `/api/auth` | [register](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#14-84), [login](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#85-144), [logout](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminAuthController.php#85-97), [me](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminAuthController.php#68-84), [generateToken](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#211-231) |
+| [TenantController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantController.php#9-192) | `/api/tenants` | [register](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#14-84), [show](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantController.php#90-118), [current](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantController.php#119-166), [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#19-39) |
+| [UserController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/UserController.php#12-234) | `/api/users` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#19-39), [store](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#120-150), [show](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantController.php#90-118), [update](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/UserController.php#142-202), [destroy](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/UserController.php#203-233) |
+| [SubscriptionController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#10-147) | `/api/modules` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#19-39), [tenantModules](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Models/Module.php#25-32), [subscribe](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#62-101), [unsubscribe](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#102-124), [checkAccess](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#125-146) |
+| [PaymentController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#14-563) | `/api/payment` | [createCheckoutSession](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#23-141), [verifyPayment](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#142-255), [stripeWebhook](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#256-297), [handleCheckoutSessionCompleted](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#298-343), [createInvoiceForPayment](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#344-390), [savePaymentMethod](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#391-453), [handlePaymentIntentSucceeded](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#454-465), [handlePaymentIntentFailed](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#466-478), [activateSubscription](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#479-515), [calculatePrice](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#516-532), [calculateExpiryDate](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#533-549), [getPaymentStatus](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentController.php#550-562) |
+| [InvoiceController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#11-299) | `/api/invoices` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#19-39), [show](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantController.php#90-118), [download](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#132-163), [pay](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#164-265), [createInvoice](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/InvoiceController.php#266-298) |
+| [PaymentMethodController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentMethodController.php#11-249) | `/api/payment-methods` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#19-39), [store](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#120-150), [destroy](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/UserController.php#203-233), [setDefault](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentMethodController.php#217-248) |
+| [PaymentHistoryController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#13-163) | `/api/payment/history` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#19-39), [statistics](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#52-93), [downloadInvoice](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/PaymentHistoryController.php#94-131) |
+| [TenantDatabaseController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#12-189) | `/api/database` | [analytics](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#25-60), [tables](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#61-92), [growth](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#93-124), [plans](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#125-161), [buildAlerts](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantDatabaseController.php#162-188) |
+| [DomainController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#9-211) | `/api/domains` | [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#19-39), [store](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#120-150), [verify](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#68-83), [setPrimary](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#84-103), [getDNSHosts](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#123-141), [updateDNSHosts](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#142-167), [getNameservers](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#104-122), [renew](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#168-191), [destroy](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/UserController.php#203-233) |
+| [DomainStoreController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#14-597) | `/api/domains/store` | [search](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#84-103), [whois](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#104-118), [purchase](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#119-216), [repay](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#400-465), [verifyPurchase](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#217-399), [orders](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#30-64), [show](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantController.php#90-118), [syncOrder](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#522-572), [renewOrder](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainStoreController.php#573-596) |
+| [ModuleManagementController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#13-209) | `/api/super-admin/modules` | [upload](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#15-88), [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#19-39), [store](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#120-150), [update](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/UserController.php#142-202), [destroy](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/UserController.php#203-233) |
+| [SuperAdminController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#12-166) | `/api/super-admin` | [dashboard](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#14-34), [tenants](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#35-65), [tenantDetails](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#66-86), [approveTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#87-100), [suspendTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#101-114), [deleteTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminController.php#115-133) |
+| [SuperAdminAuthController](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminAuthController.php#11-135) | `/api/super-admin` | [login](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/AuthController.php#85-144), [logout](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminAuthController.php#85-97), [me](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminAuthController.php#68-84), [changePassword](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SuperAdminAuthController.php#98-134) |
+
+---
+
+### Middlewares
+
+| File | Alias | Purpose |
+|---|---|---|
+| [IdentifyTenant.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/IdentifyTenant.php) | _(class)_ | Tenant resolution from header/subdomain/custom domain. Switches DB. Kill-switch for suspended tenants. |
+| [AuthenticateToken.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/AuthenticateToken.php) | _(class)_ | HS256 JWT validation. Attaches `user_id` and `token_tenant_id` to request. |
+| [CheckModuleAccess.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/CheckModuleAccess.php) | `module.access` | Checks active module subscription. Returns `402` if not subscribed. |
+| [EnforceDatabaseQuota.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/EnforceDatabaseQuota.php) | `quota.enforce` | Blocks POST/PUT/PATCH if storage MB or table count limit reached. |
+| [DynamicCors.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Middleware/DynamicCors.php) | _(auto)_ | Sets `Access-Control-Allow-Origin` dynamically from verified tenant domains. |
+
+---
+
+### Services
+
+| File | Key Methods |
+|---|---|
+| [DatabaseManager.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php) | [createTenantDatabase](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#18-50), [runTenantMigrations](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#31-79), [createAdminUser](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#100-126), [getTenantConnection](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#127-170), [switchToTenantDatabase](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DatabaseManager.php#144-184) |
+| [TenantService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php) | [createTenant](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#19-109) (5-step atomic state machine), [cleanupFailedProvisioning](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#143-171), [validateTenantId](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#110-120), [tenantExists](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#108-118), [getAllTenants](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#172-181), [getTenantByTenantId](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantService.php#132-142) |
+| [TenantDatabaseIsolationService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php) | [createIsolatedUser](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#13-62), [revokeAccess](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#63-85), [dropIsolatedUser](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#86-112), [setStoragePlan](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#113-132), [checkQuotaUsage](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#133-167), [isOverQuota](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseIsolationService.php#168-178) |
+| [TenantDatabaseAnalyticsService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php) | [collectStats](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#12-114), [collectAllStats](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#115-137), [getAnalytics](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#138-182), [getTableBreakdown](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#183-228), [getGrowthTrend](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#229-274), [detectSchemaDrift](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantDatabaseAnalyticsService.php#275-328) |
+| [ModuleMigrationManager.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php) | [getModuleMigrations](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#26-49), [runModuleMigrations](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#50-128) (row-lock + quota guard), [rollbackModuleMigrations](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#129-171) (non-destructive), [archiveModuleTables](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#172-212), [hasRun](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#234-246), [recordMigration](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#247-263), [getNextBatchNumber](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#277-290) |
+| [ModuleService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php) | [subscribeModule](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#83-153), [unsubscribeModule](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#154-201), [isModuleActive](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#58-82), [getTenantModules](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#28-57), [getAvailableModules](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#20-27), [getModuleStats](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleService.php#202-219) |
+| [BillingEnforcementService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/BillingEnforcementService.php) | Suspends overdue tenants. Revokes DB access. |
+| [DomainService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DomainService.php) | Custom domain CRUD, DNS management, Namecheap integration. |
+| [DomainSearchService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DomainSearchService.php) | Domain availability search, pricing, TLD suggestions. |
+| [DomainRegistrationService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/DomainRegistrationService.php) | Domain registration and WHOIS. |
+| [NamecheapService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/NamecheapService.php) | `checkDomains`, [registerDomain](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/NamecheapService.php#178-193), [getDNSHosts](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#123-141), `setDNSHosts`, [getNameservers](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/DomainController.php#104-122), `setNameservers`, [renewDomain](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/NamecheapService.php#194-227). |
+| [TenantBackupService.php](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/TenantBackupService.php) | Tenant database backup utilities. |
+
+---
+
+### Modules (`app/Modules/Ecommerce/`)
+
+| Component | Features |
+|---|---|
+| `ProductController` | CRUD: [index](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/SubscriptionController.php#19-39), [store](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/ModuleManagementController.php#120-150), [show](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/TenantController.php#90-118), [update](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/UserController.php#142-202), [destroy](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Http/Controllers/Api/UserController.php#203-233). |
+| `CategoryController` | CRUD for product categories. |
+| `OrderController` | CRUD for orders + status management. |
+| `CustomerController` | CRUD for customers. |
+| `EcommerceDashboardController` | `stats`: revenue, order count, product count, customer count. |
+| **Migrations** | `ec_products`, `ec_categories`, `ec_orders`, `ec_order_items`, `ec_customers` (installed on subscribe via [ModuleMigrationManager](file:///e:/Mern%20Stact%20Dev/multi-tenant-mern/multi-tenant-laravel/app/Services/ModuleMigrationManager.php#9-291)). |
+
+---
+
+## 🏗️ Source Code: Core Services
+
+### DatabaseManager.php
+```php
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Config;
+
+class DatabaseManager
+{
+    protected static array $connectionCache = [];
+
+    public function createTenantDatabase(string $databaseName): void
+    {
+        DB::statement("CREATE DATABASE IF NOT EXISTS `{$databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        \Log::info("Created tenant database: {$databaseName}");
+
+        try {
+            $tenant = \App\Models\Tenant::where('database_name', $databaseName)->first();
+            if ($tenant) {
+                $isolationService = app(TenantDatabaseIsolationService::class);
+                $isolationService->createIsolatedUser($tenant);
+                if (!$tenant->database_plan_id) {
+                    $starterPlan = \App\Models\TenantDatabasePlan::where('slug', 'starter')->first();
+                    if ($starterPlan) {
+                        $tenant->update(['database_plan_id' => $starterPlan->id]);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning("Could not create isolated user for {$databaseName}: " . $e->getMessage());
+        }
+    }
+
+    public function runTenantMigrations(string $databaseName): void
+    {
+        $connection = $this->getTenantConnection($databaseName);
+        $connection->statement("
+            CREATE TABLE IF NOT EXISTS users (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                email_verified_at TIMESTAMP NULL,
+                password VARCHAR(255) NOT NULL,
+                role ENUM('admin', 'manager', 'user') DEFAULT 'user',
+                status ENUM('active', 'inactive') DEFAULT 'active',
+                remember_token VARCHAR(100) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+
+        $connection->statement("
+            CREATE TABLE IF NOT EXISTS personal_access_tokens (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                tokenable_type VARCHAR(255) NOT NULL,
+                tokenable_id BIGINT UNSIGNED NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                token VARCHAR(64) NOT NULL UNIQUE,
+                abilities TEXT NULL,
+                last_used_at TIMESTAMP NULL,
+                expires_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+
+    public function createAdminUser(string $databaseName, string $email, string $password): void
+    {
+        $connection = $this->getTenantConnection($databaseName);
+        $connection->table('users')->insert([
+            'name' => 'Admin',
+            'email' => $email,
+            'password' => Hash::make($password),
+            'role' => 'admin',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    public function getTenantConnection(string $databaseName)
+    {
+        if (isset(self::$connectionCache[$databaseName])) {
+            return self::$connectionCache[$databaseName];
+        }
+
+        $connectionName = 'tenant_' . $databaseName;
+        $tenant = \App\Models\Tenant::where('database_name', $databaseName)->first();
+        $username = $tenant->db_username ?? config('tenant.database.username');
+        $password = $tenant->db_password_encrypted ?? config('tenant.database.password');
+        
+        Config::set("database.connections.{$connectionName}", [
+            'driver' => 'mysql',
+            'host' => config('tenant.database.host'),
+            'port' => config('tenant.database.port'),
+            'database' => $databaseName,
+            'username' => $username,
+            'password' => $password,
+            'charset' => config('tenant.database.charset'),
+            'collation' => config('tenant.database.collation'),
+        ]);
+
+        $connection = DB::connection($connectionName);
+        self::$connectionCache[$databaseName] = $connection;
+        return $connection;
+    }
+
+    public function switchToTenantDatabase(string $tenantId): void
+    {
+        $tenant = \App\Models\Tenant::where('tenant_id', $tenantId)->where('status', 'active')->first();
+        if (!$tenant) throw new \Exception('Tenant not found or inactive');
+
+        $username = $tenant->db_username ?? config('tenant.database.username');
+        $password = $tenant->db_password_encrypted ?? config('tenant.database.password');
+        
+        Config::set('database.connections.tenant_dynamic', [
+            'driver' => 'mysql',
+            'host' => config('tenant.database.host'),
+            'port' => config('tenant.database.port'),
+            'database' => $tenant->database_name,
+            'username' => $username,
+            'password' => $password,
+            'charset' => config('tenant.database.charset'),
+            'collation' => config('tenant.database.collation'),
+        ]);
+
+        DB::purge('tenant_dynamic');
+        DB::reconnect('tenant_dynamic');
+        DB::setDefaultConnection('tenant_dynamic');
+    }
+}
+```
+
+### TenantService.php (Provisioning State Machine)
+```php
+<?php
+
+namespace App\Services;
+
+use App\Models\Tenant;
+use App\Models\TenantDomain;
+use Illuminate\Support\Facades\Log;
+
+class TenantService
+{
+    protected DatabaseManager $databaseManager;
+
+    public function __construct(DatabaseManager $databaseManager)
+    {
+        $this->databaseManager = $databaseManager;
+    }
+
+    // State Machine: pending → db_created → migrated → active/failed
+    public function createTenant(array $data): Tenant
+    {
+        $databaseName = Tenant::generateDatabaseName($data['tenantId']);
+        $domain = $data['tenantId'] . '.' . parse_url(config('app.url'), PHP_URL_HOST);
+
+        $tenant = Tenant::create([...$data, 'database_name' => $databaseName, 'domain' => $domain,
+            'status' => 'inactive', 'provisioning_status' => 'pending']);
+
+        try {
+            $this->databaseManager->createTenantDatabase($databaseName);
+            $tenant->update(['provisioning_status' => 'db_created']);
+
+            $this->databaseManager->runTenantMigrations($databaseName);
+            $tenant->update(['provisioning_status' => 'migrated']);
+
+            $this->databaseManager->createAdminUser($databaseName, $data['adminEmail'], $data['adminPassword']);
+            $tenant->update(['provisioning_status' => 'active', 'status' => 'active']);
+
+            TenantDomain::create(['tenant_id' => $tenant->tenant_id, 'domain' => $domain,
+                'is_primary' => true, 'is_verified' => true, 'status' => 'verified']);
+
+            return $tenant;
+        } catch (\Exception $e) {
+            $tenant->update(['provisioning_status' => 'failed']);
+            Log::critical("Provisioning failed: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function cleanupFailedProvisioning(int $olderThanHours = 24): int
+    {
+        $failed = Tenant::whereIn('provisioning_status', ['failed', 'pending'])
+            ->where('created_at', '<=', now()->subHours($olderThanHours))->get();
+
+        $count = 0;
+        foreach ($failed as $tenant) {
+            try {
+                $this->databaseManager->deleteTenantDatabase($tenant->database_name);
+                $tenant->delete();
+                $count++;
+            } catch (\Exception $e) {
+                Log::error("Cleanup failed for {$tenant->tenant_id}: " . $e->getMessage());
+            }
+        }
+        return $count;
+    }
+}
+```
+
+### TenantDatabaseIsolationService.php
+```php
+<?php
+
+namespace App\Services;
+
+use App\Models\Tenant;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+class TenantDatabaseIsolationService
+{
+    // Creates a MySQL user with access ONLY to the tenant's own database
+    public function createIsolatedUser(Tenant $tenant): array
+    {
+        $username = substr('tu_' . Str::slug($tenant->tenant_id, '_'), 0, 32);
+        $password = Str::random(32);
+
+        DB::statement("DROP USER IF EXISTS '{$username}'@'%'");
+        DB::statement("CREATE USER '{$username}'@'%' IDENTIFIED BY '{$password}'");
+        DB::statement("GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES ON `{$tenant->database_name}`.* TO '{$username}'@'%'");
+        DB::statement("FLUSH PRIVILEGES");
+
+        $tenant->update(['db_username' => $username, 'db_password_encrypted' => $password]);
+        return ['username' => $username, 'password' => $password];
+    }
+
+    public function revokeAccess(Tenant $tenant): void
+    {
+        if (!$tenant->db_username) return;
+        DB::statement("REVOKE ALL PRIVILEGES, GRANT OPTION FROM '{$tenant->db_username}'@'%'");
+        DB::statement("FLUSH PRIVILEGES");
+    }
+
+    public function checkQuotaUsage(Tenant $tenant): array
+    {
+        $plan = $tenant->databasePlan;
+        if (!$plan) return ['over_quota' => false, 'usage_mb' => 0, 'limit_mb' => 0, 'usage_percent' => 0];
+
+        $usageMb = (float) ($tenant->latestDatabaseStat->database_size_mb ?? 0);
+        $limitMb = $plan->storage_limit_mb;
+
+        return [
+            'over_quota' => $usageMb >= $limitMb,
+            'usage_mb' => $usageMb,
+            'limit_mb' => $limitMb,
+            'usage_percent' => $limitMb > 0 ? round(($usageMb / $limitMb) * 100, 2) : 0,
+            'plan' => $plan->name,
+        ];
+    }
+
+    public function isOverQuota(Tenant $tenant): bool
+    {
+        return $this->checkQuotaUsage($tenant)['over_quota'];
+    }
+}
+```
+
+### AppServiceProvider.php (Global Queue Guard)
+```php
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Queue;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        // Intercept every queued job — apply tenant DB context before execution
+        Queue::before(function (\Illuminate\Queue\Events\JobProcessing $event) {
+            $data = json_decode($event->job->getRawBody(), true);
+            if (isset($data['data']['command'])) {
+                $command = unserialize($data['data']['command']);
+                if (method_exists($command, 'applyTenantContext')) {
+                    $command->applyTenantContext();
+                }
+            }
+        });
+    }
+}
+```

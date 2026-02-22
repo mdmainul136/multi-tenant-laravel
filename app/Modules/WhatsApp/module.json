@@ -1,0 +1,17 @@
+{
+    "name": "WhatsApp Commerce",
+    "key": "whatsapp",
+    "version": "1.0.0",
+    "description": "Sell products, send order updates and manage customer support via WhatsApp.",
+    "author": "System",
+    "is_active": true,
+    "category": "marketing",
+    "icon": "message-circle",
+    "features": [
+        "automated_notifications",
+        "product_catalog_sync",
+        "chat_to_order",
+        "broadcast_lists",
+        "shared_inbox"
+    ]
+}

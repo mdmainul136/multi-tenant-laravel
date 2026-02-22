@@ -1,0 +1,16 @@
+{
+    "name": "Reviews & Ratings",
+    "key": "reviews",
+    "version": "1.0.0",
+    "description": "Product reviews, star ratings, and photo reviews with moderation.",
+    "author": "System",
+    "is_active": true,
+    "category": "growth",
+    "icon": "star",
+    "features": [
+        "photo_reviews",
+        "review_moderation",
+        "automated_publishing",
+        "star_rating_stats"
+    ]
+}

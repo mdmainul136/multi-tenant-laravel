@@ -1,0 +1,17 @@
+{
+    "name": "Travel & Tours",
+    "key": "travel",
+    "version": "1.0.0",
+    "description": "Itinerary builder, booking management, and tour packages.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "plane",
+    "features": [
+        "itinerary_builder",
+        "booking_management",
+        "tour_packages",
+        "travel_agents",
+        "visa_tracking"
+    ]
+}

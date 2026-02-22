@@ -1,0 +1,22 @@
+{
+    "name": "POS",
+    "key": "pos",
+    "version": "1.0.0",
+    "description": "Point of Sale (POS) system for physical retail. Supports sessions, split payments, barcode scanning, and loyalty integration.",
+    "author": "System",
+    "is_active": true,
+    "category": "retail",
+    "icon": "shopping-cart",
+    "dependencies": [
+        "ecommerce",
+        "inventory",
+        "finance"
+    ],
+    "features": [
+        "session_management",
+        "split_payments",
+        "barcode_scanning",
+        "loyalty_integration",
+        "receipt_printing"
+    ]
+}

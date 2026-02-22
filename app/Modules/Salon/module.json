@@ -1,0 +1,17 @@
+{
+    "name": "Salon & Spa",
+    "key": "salon",
+    "version": "1.0.0",
+    "description": "Appointment booking, stylist management, and service catalog.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "scissors",
+    "features": [
+        "appointment_booking",
+        "stylist_management",
+        "service_catalog",
+        "client_loyalty",
+        "inventory_usage"
+    ]
+}

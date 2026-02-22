@@ -1,0 +1,17 @@
+{
+    "name": "LMS",
+    "key": "lms",
+    "version": "1.0.0",
+    "description": "Course builder, student progress, and learning management system.",
+    "author": "System",
+    "is_active": true,
+    "category": "vertical",
+    "icon": "book-open",
+    "features": [
+        "course_builder",
+        "student_enrollment",
+        "quizzes_exams",
+        "certificates",
+        "live_classes"
+    ]
+}

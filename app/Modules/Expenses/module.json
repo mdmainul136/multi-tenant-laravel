@@ -1,0 +1,17 @@
+{
+    "name": "Expense Tracker",
+    "key": "expenses",
+    "version": "1.0.0",
+    "description": "Track business expenses, upload receipts, and manage approval workflows.",
+    "author": "System",
+    "is_active": true,
+    "category": "finance",
+    "icon": "receipt",
+    "features": [
+        "receipt_upload",
+        "expense_categories",
+        "approval_flow",
+        "budget_tracking",
+        "tax_deduction_reports"
+    ]
+}
